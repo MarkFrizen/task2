@@ -1,10 +1,8 @@
-"""Семантический поиск с использованием Qdrant и эмбеддингов."""
+"""Семантический поиск с использованием Qdrant."""
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
-
 model = SentenceTransformer('all-MiniLM-L6-v2')
 client = QdrantClient(host="localhost", port=6333)
-
 PRESET_QUERIES = [
     "машинное обучение",
     "векторы",
@@ -14,8 +12,8 @@ PRESET_QUERIES = [
     "предложения"
 ]
 
+"""Ищет top_k наиболее похожих документов на запрос через Qdrant."""
 def search(query: str, top_k: int = 5):
-    """Ищет top_k наиболее похожих документов на запрос через Qdrant."""
     vec = model.encode([query])[0].tolist()
     
     results = client.query_points(
@@ -24,19 +22,14 @@ def search(query: str, top_k: int = 5):
         limit=top_k,
         with_payload=True
     )
-    
     return results.points
-
 if __name__ == "__main__":
     print("\n=== Семантический поиск ===")
     print("Выберите запрос или 0 для ручного ввода:\n")
-    
     for i, q in enumerate(PRESET_QUERIES, start=1):
         print(f"  {i}. {q}")
     print("  0. Ввести свой запрос")
-    
     choice = input("\nВаш выбор: ").strip()
-    
     if choice == "0":
         query = input("Введите запрос: ").strip()
     else:
@@ -50,7 +43,6 @@ if __name__ == "__main__":
         except ValueError:
             print("Неверный ввод")
             query = PRESET_QUERIES[0]
-    
     print(f"\nЗапрос: {query}\n")
     results = search(query)
     if not results:
