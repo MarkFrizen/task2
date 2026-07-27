@@ -1,4 +1,3 @@
-"""Создание индекса и загрузка документов в Qdrant."""
 import os
 import uuid
 import pickle

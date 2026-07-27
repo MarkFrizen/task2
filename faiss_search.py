@@ -1,4 +1,3 @@
-"""Поиск аналогичных документов с использованием FAISS."""
 import faiss
 import numpy as np
 import pickle
