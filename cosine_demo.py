@@ -1,3 +1,4 @@
+"""Модуль для демонстрации поиска по косинусному сходству."""
 import numpy as np
 import pickle
 from sentence_transformers import SentenceTransformer
@@ -10,6 +11,7 @@ embeddings = np.load("embeddings.npy")
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def show_cosine_distances(query: str):
+    """Показывает косинусное сходство и расстояние между запросом и документами."""
     q_emb = model.encode([query])
     
     similarities = cosine_similarity(q_emb, embeddings)[0]

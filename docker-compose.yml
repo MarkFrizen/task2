@@ -1,3 +1,4 @@
+"""Конфигурация Docker Compose для запуска Qdrant — векторной базы данных."""
 version: '3.8'  # Версия синтаксиса Docker Compose
 services:
   qdrant:

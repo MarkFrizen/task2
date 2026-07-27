@@ -1,3 +1,4 @@
+"""Семантический поиск с использованием Qdrant и эмбеддингов."""
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 
@@ -14,6 +15,7 @@ PRESET_QUERIES = [
 ]
 
 def search(query: str, top_k: int = 5):
+    """Ищет top_k наиболее похожих документов на запрос через Qdrant."""
     vec = model.encode([query])[0].tolist()
     
     results = client.query_points(

@@ -6,6 +6,8 @@ from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams, PointStruct
 
+"""Модуль для создания индекса и загрузки документов в Qdrant."""
+
 model = SentenceTransformer('all-MiniLM-L6-v2')
 client = QdrantClient(host="localhost", port=6333)
 collection_name = "my_docs"
@@ -25,6 +27,7 @@ if not os.path.exists(doc_folder):
     print(f"Папка {doc_folder} не найдена")
     exit(1)
 
+# Загрузка текстовых файлов и разбиение на чанки
 for filename in os.listdir(doc_folder):
     if not filename.endswith(".txt"):
         continue
@@ -47,6 +50,7 @@ if not docs:
     exit(1)
 print(f"Сгенерировано {len(docs)} чанков")
 
+# Преобразование текстовых чанков в векторы
 embeddings = model.encode(docs, show_progress_bar=True)
 
 points = [
@@ -61,6 +65,7 @@ points = [
 client.upsert(collection_name=collection_name, points=points)
 print(f"Загружено {len(points)} векторов в коллекцию '{collection_name}'")
 
+# Сохранение данных в файлы для локального использования
 with open("docs.pkl", "wb") as f:
     pickle.dump(docs, f)
 with open("metadatas.pkl", "wb") as f:

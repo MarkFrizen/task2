@@ -1,3 +1,4 @@
+"""Модуль для поиска аналогичных документов с использованием FAISS."""
 import faiss
 import numpy as np
 import pickle
@@ -22,6 +23,7 @@ index.add(embeddings_norm)
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def search_faiss(query: str, top_k: int = 5):
+    """Ищет top_k наиболее похожих документов на запрос через FAISS."""
     q_emb = model.encode([query])
     q_emb_norm = q_emb / np.linalg.norm(q_emb)
     
