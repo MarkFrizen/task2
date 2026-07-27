@@ -6,13 +6,14 @@ client = QdrantClient(host="localhost", port=6333)
 
 def search(query, top_k=5):
     vec = model.encode([query])[0].tolist()
-    results = client.search(
+    # Используем query_points (новый метод)
+    results = client.query_points(
         collection_name="my_docs",
-        query_vector=vec,
+        query=vec,
         limit=top_k,
         with_payload=True
     )
-    return results
+    return results.points   # точки с payload и score
 
 if __name__ == "__main__":
     q = input("Введите запрос: ")
