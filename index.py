@@ -6,8 +6,9 @@ from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams, PointStruct
 
-# Модель для кодирования текстов
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# Модель для кодирования текстов (локальный кэш для офлайн-работы)
+MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
+model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
 client = QdrantClient(host="localhost", port=6333)
 collection_name = "my_docs"
 vector_size = 384

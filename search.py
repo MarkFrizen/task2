@@ -1,6 +1,10 @@
+import os
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
-model = SentenceTransformer('all-MiniLM-L6-v2')
+
+# Локальный кэш для офлайн-работы
+MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
+model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
 client = QdrantClient(host="localhost", port=6333)
 PRESET_QUERIES = [
     "машинное обучение",

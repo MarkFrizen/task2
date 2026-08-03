@@ -1,3 +1,4 @@
+import os
 import faiss
 import numpy as np
 import pickle
@@ -13,7 +14,9 @@ embeddings_norm = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
 dim = embeddings.shape[1]
 index = faiss.IndexFlatIP(dim)
 index.add(embeddings_norm)
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# Локальный кэш для офлайн-работы
+MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
+model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
 
 """Ищет top_k наиболее похожих документов на запрос через FAISS."""
 def search_faiss(query: str, top_k: int = 5):
