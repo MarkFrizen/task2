@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-"""
-Скрипт для индексации текстовых документов в Qdrant.
-
-Загружает текстовые файлы из папки documents, разбивает их на чанки,
-кодировает каждый чанк в вектор с помощью SentenceTransformer и загружает
-векторы в коллекцию Qdrant для семантического поиска. Также сохраняет
-данные локально в формате pickle и numpy.
-"""
 import os
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['HF_HUB_OFFLINE'] = '1'
