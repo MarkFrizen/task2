@@ -1,4 +1,10 @@
 import os
+
+# Отключаем обращения к интернету (офлайн-режим)
+os.environ['TRANSFORMERS_OFFLINE'] = '1'
+os.environ['HF_HUB_OFFLINE'] = '1'
+os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
+
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 
