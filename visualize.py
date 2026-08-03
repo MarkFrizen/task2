@@ -1,13 +1,23 @@
+#!/usr/bin/env python3
+"""
+Визуализация эмбеддингов документов в 2D и 3D.
+
+Скрипт загружает сохранённые эмбеддинги и визуализирует их с помощью
+методов понижения размерности: PCA для 2D и t-SNE для 3D,
+позволяя наглядно оценить распределение документов в векторном пространстве.
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import pickle
+
+# Загрузка эмбеддингов и текстов документов
 embeddings = np.load("embeddings.npy")
 with open("docs.pkl", "rb") as f:
     docs = pickle.load(f)
 
-# 2D визуализация через PCA
+# 2D визуализация с помощью метода главных компонент
 pca = PCA(n_components=2)
 emb_2d = pca.fit_transform(embeddings)
 plt.figure(figsize=(10, 8))
@@ -21,7 +31,7 @@ plt.ylabel("PC2")
 plt.grid(True)
 plt.show()
 
-# 3D визуализация через t-SNE или PCA
+# 3D визуализация с помощью t-SNE при достаточном объёме данных или PCA
 if len(embeddings) > 2:
     perplexity = min(30, len(embeddings) - 1)
     tsne = TSNE(n_components=3, perplexity=perplexity, random_state=42)

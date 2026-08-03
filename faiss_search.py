@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+"""
+Поиск похожих документов с помощью библиотеки FAISS.
+
+Скрипт загружает сохранённые эмбеддинги и метаданные документов,
+создаёт FAISS-индекс для быстрого поиска по скалярному произведению,
+и находит наиболее похожие документы по заданному запросу.
+"""
 import os
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['HF_HUB_OFFLINE'] = '1'
@@ -7,21 +15,25 @@ import numpy as np
 import pickle
 from sentence_transformers import SentenceTransformer
 
-# Загрузка документов и эмбеддингов
+# Загрузка документов, метаданных и эмбеддингов
 with open("docs.pkl", "rb") as f:
     docs = pickle.load(f)
 with open("metadatas.pkl", "rb") as f:
     metadatas = pickle.load(f)
 embeddings = np.load("embeddings.npy")
+# Нормализация векторов для скалярного произведения
 embeddings_norm = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
 dim = embeddings.shape[1]
+# Создание FAISS-индекса с внутренним скалярным произведением
 index = faiss.IndexFlatIP(dim)
 index.add(embeddings_norm)
 # Локальный кэш для офлайн-работы
 MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
 
-"""Ищет top_k наиболее похожих документов на запрос через FAISS."""
+"""
+Ищет top_k наиболее похожих документов на запрос через FAISS.
+"""
 def search_faiss(query: str, top_k: int = 5):
     q_emb = model.encode([query])
     q_emb_norm = q_emb / np.linalg.norm(q_emb)

@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+"""
+Семантический поиск по документам через Qdrant.
+
+Скрипт предлагает пользователю выбрать один из готовых запросов или ввести
+свой собственный, кодирует запрос в вектор и находит наиболее релевантные
+ chunks документов из коллекции Qdrant.
+"""
 import os
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['HF_HUB_OFFLINE'] = '1'
@@ -8,7 +16,9 @@ from qdrant_client import QdrantClient
 # Локальный кэш для офлайн-работы
 MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
+# Подключение к серверу Qdrant
 client = QdrantClient(host="localhost", port=6333)
+# Набор готовых запросов для демонстрации
 PRESET_QUERIES = [
     "машинное обучение",
     "векторы",
@@ -17,7 +27,9 @@ PRESET_QUERIES = [
     "документ",
     "предложения"
 ]
-"""Ищет top_k наиболее похожих документов на запрос через Qdrant."""
+"""
+Ищет top_k наиболее похожих документов на запрос через Qdrant.
+"""
 def search(query: str, top_k: int = 5):
     vec = model.encode([query])[0].tolist()
     results = client.query_points(
