@@ -1,10 +1,7 @@
 import os
-
-# Отключаем обращения к интернету (офлайн-режим)
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
-
 import numpy as np
 import pickle
 from sentence_transformers import SentenceTransformer
@@ -17,7 +14,6 @@ embeddings = np.load("embeddings.npy")
 # Локальный кэш для офлайн-работы
 MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
-
 """Показывает косинусное сходство между запросом и документами."""
 def show_cosine_distances(query: str):
     q_emb = model.encode([query])

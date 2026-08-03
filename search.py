@@ -1,10 +1,7 @@
 import os
-
-# Отключаем обращения к интернету (офлайн-режим)
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
-
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 
@@ -20,11 +17,9 @@ PRESET_QUERIES = [
     "документ",
     "предложения"
 ]
-
 """Ищет top_k наиболее похожих документов на запрос через Qdrant."""
 def search(query: str, top_k: int = 5):
     vec = model.encode([query])[0].tolist()
-    
     results = client.query_points(
         collection_name="my_docs",
         query=vec,
