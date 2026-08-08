@@ -10,15 +10,6 @@ MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_c
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
 # Подключение к серверу Qdrant
 client = QdrantClient(host="localhost", port=6333)
-# Набор готовых запросов для демонстрации
-PRESET_QUERIES = [
-    "машинное обучение",
-    "векторы",
-    "поиск по смыслу",
-    "эмбеддинги",
-    "документ",
-    "предложения"
-]
 """
 Ищет top_k наиболее похожих документов на запрос через Qdrant.
 """
@@ -33,7 +24,7 @@ def search(query: str, top_k: int = 5):
     return results.points
 if __name__ == "__main__":
     print("\n=== Семантический поиск ===")
-    print("Выберите запрос или 0 для ручного ввода:\n")
+    print("Введите запрос:\n")
     for i, q in enumerate(PRESET_QUERIES, start=1):
         print(f"  {i}. {q}")
     print("  0. Ввести свой запрос")
