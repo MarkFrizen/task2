@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import pickle
 import numpy as np
@@ -19,15 +20,23 @@ model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
 client = QdrantClient(host="localhost", port=6333)
 collection_name = "my_docs"
 vector_size = 384
-client.recreate_collection(
-    collection_name=collection_name,
-    vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE)
-)
+if not client.collection_exists(collection_name):
+    client.create_collection(
+        collection_name=collection_name,
+        vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE)
+    )
+else:
+    client.delete_collection(collection_name)
+    client.create_collection(
+        collection_name=collection_name,
+        vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE)
+    )
 
 # Параметры чанкинга
 chunk_size = 800
 overlap_size = 150
 similarity_threshold = 0.7
+STOP_PHRASES = ["Stop Word 1", "Stop Word 2"]
 
 # ---------- Функции ----------
 def split_into_sentences(text: str) -> list:
