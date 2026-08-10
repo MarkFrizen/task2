@@ -43,8 +43,18 @@ def is_block_empty(block: str) -> bool:
 for filename in os.listdir(doc_folder):
     if not filename.endswith(".txt"):
         continue
-    with open(os.path.join(doc_folder, filename), 'r', encoding='utf-8') as f:
-        text = f.read()
+    filepath = os.path.join(doc_folder, filename)
+    text = None
+    for encoding in ['utf-8', 'utf-8-sig', 'latin-1', 'cp1251']:
+        try:
+            with open(filepath, 'r', encoding=encoding) as f:
+                text = f.read()
+            break
+        except (UnicodeDecodeError, UnicodeError):
+            continue
+    if text is None:
+        print(f"Пропущен файл {filename}: не удалось определить кодировку")
+        continue
     blocks = split_into_blocks(text)
     if not blocks:
         continue
