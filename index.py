@@ -1,3 +1,4 @@
+# Импорт необходимых библиотек
 import os
 import re
 import uuid
@@ -15,8 +16,6 @@ os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
 os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
-
-# Импортируем библиотеки для эмбеддингов и векторной БД
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams, PointStruct
@@ -24,6 +23,7 @@ from qdrant_client.http.models import Distance, VectorParams, PointStruct
 # Настройки модели и базы данных
 MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
+
 client = QdrantClient(host="localhost", port=6333)
 collection_name = "my_docs"
 vector_size = 384
@@ -36,29 +36,32 @@ client.create_collection(
     vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE)
 )
 
-# Параметры чанкинга: размер, перекрытие, порог схожести, стоп-фразы
+# Параметры чанкинга
 chunk_size = 800
 overlap_size = 0          # перекрытие отключено, чтобы не было дублей
 similarity_threshold = 0.7
-STOP_PHRASES = ["Вот ваш обновлённый ответ", "готовый к вставке в `README.md`"]
 
-# Функция очистки текста от дублей, кавычек и разделителей
+# Функция очистки текста: убирает только кавычки, запятые в конце и ссылки
 def clean_text(text: str) -> str:
+    # Удаляем ссылки типа [reference:цифры]
+    text = re.sub(r'\[reference:\d+\]', '', text)
     lines = text.splitlines()
-    seen = set()
     cleaned_lines = []
     for line in lines:
         line = line.strip()
-        if not line or line in ("---", "***", "___"):
-            continue
+        # Убираем начальные и конечные кавычки (всех видов)
         if line.startswith(('"', "'", '«', '“', '„')) and line.endswith(('"', "'", '»', '”', '“')):
             line = line[1:-1]
+        # Убираем запятую в конце строки
         if line.endswith(','):
             line = line[:-1]
+        # Убираем точку с запятой в конце
+        if line.endswith(';'):
+            line = line[:-1]
         line = line.strip()
-        if line and line not in seen:
-            seen.add(line)
+        if line:  # сохраняем все непустые строки, включая ---, *** и т.д.
             cleaned_lines.append(line)
+    # Собираем обратно с двойными переносами между строками (сохраняем структуру)
     return '\n\n'.join(cleaned_lines)
 
 # Разбивает текст на предложения через NLTK
@@ -77,7 +80,7 @@ def is_heading(text: str) -> bool:
         return True
     return False
 
-# Удаляет повторяющиеся предложения внутри списка
+# Удаляет повторяющиеся предложения внутри списка (в пределах одного абзаца)
 def deduplicate_sentences(sentences: list) -> list:
     seen = set()
     unique = []
@@ -94,6 +97,7 @@ def semantic_chunking(text: str, chunk_size: int, threshold: float) -> list:
     if not paragraphs:
         return []
     all_chunks = []
+
     for para in paragraphs:
         # Если абзац — заголовок, добавляем его целиком
         if is_heading(para):
@@ -106,7 +110,7 @@ def semantic_chunking(text: str, chunk_size: int, threshold: float) -> list:
                     all_chunks.append(" ".join(sents))
             continue
 
-        # Обычный абзац: разбиваем на предложения и удаляем дубли
+        # Обычный абзац: разбиваем на предложения и удаляем дубли внутри абзаца
         sentences = split_into_sentences(para)
         sentences = [s.strip() for s in sentences if s.strip()]
         sentences = deduplicate_sentences(sentences)
@@ -119,6 +123,7 @@ def semantic_chunking(text: str, chunk_size: int, threshold: float) -> list:
         # Собираем чанки без перекрытия
         current_chunk = [sentences[0]]
         current_len = len(sentences[0])
+
         for i in range(1, len(sentences)):
             # Вычисляем косинусное сходство между соседними предложениями
             sim = np.dot(embeddings[i-1], embeddings[i]) / (
@@ -143,7 +148,7 @@ def semantic_chunking(text: str, chunk_size: int, threshold: float) -> list:
             if chunk_text:
                 all_chunks.append(chunk_text)
 
-    # Глобальная дедупликация чанков
+    # Глобальная дедупликация чанков (точные дубликаты)
     seen = set()
     unique_chunks = []
     for ch in all_chunks:
@@ -178,20 +183,18 @@ for filename in os.listdir(doc_folder):
         print(f"Пропущен {filename} — не удалось определить кодировку")
         continue
 
-    # Очищаем текст от дублей и мусора
+    # Очищаем текст от лишних символов (кавычки, запятые, ссылки)
     text = clean_text(text)
 
     # Применяем семантический чанкинг
     chunks = semantic_chunking(text, chunk_size, similarity_threshold)
-    chunks = [c for c in chunks if c.strip() and c.strip() != "---"]
+    chunks = [c for c in chunks if c.strip()]  # убираем только совсем пустые чанки
     if not chunks:
         print(f"Файл {filename} не дал чанков")
         continue
 
-    # Сохраняем чанки с метаданными, пропуская стоп-фразы
+    # Сохраняем все чанки без исключений
     for idx, chunk in enumerate(chunks):
-        if any(phrase in chunk for phrase in STOP_PHRASES):
-            continue
         docs.append(chunk)
         metadatas.append({
             "source": filename,
@@ -223,14 +226,11 @@ with open("tokenized_docs.pkl", "wb") as f:
 print(f"Создан BM25 индекс по {len(docs)} чанкам")
 
 # Сохранение данных на диск
-# Текстовый файл с разделителями между чанками
 with open("docs.txt", "w", encoding="utf-8") as f:
     for i, chunk in enumerate(docs):
         if i > 0:
             f.write("\n---\n\n")
         f.write(chunk)
-
-# Бинарные файлы для быстрой загрузки в Python
 with open("docs.pkl", "wb") as f:
     pickle.dump(docs, f)
 with open("metadatas.pkl", "wb") as f:
