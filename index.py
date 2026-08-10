@@ -17,7 +17,7 @@ client = QdrantClient(host="localhost", port=6333)
 collection_name = "my_docs"
 vector_size = 384
 
-# Пересоздаём коллекцию (осторожно, удаляет старые данные)
+# Пересоздаём коллекцию
 client.recreate_collection(
     collection_name=collection_name,
     vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE)
