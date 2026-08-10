@@ -19,94 +19,97 @@ model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
 client = QdrantClient(host="localhost", port=6333)
 collection_name = "my_docs"
 vector_size = 384
-
-# Пересоздаём коллекцию
 client.recreate_collection(
     collection_name=collection_name,
     vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE)
 )
 
-# Параметры семантического чанкинга
-chunk_size = 800              # максимальная длина чанка в символах
-overlap_size = 150            # перекрытие в символах между соседними чанками
-similarity_threshold = 0.7    # порог схожести предложений для разрыва
+# Параметры чанкинга
+chunk_size = 800
+overlap_size = 150
+similarity_threshold = 0.7
 
-# ---------- Функции для работы с текстом ----------
+# ---------- Функции ----------
 def split_into_sentences(text: str) -> list:
-    """Разбивает текст на предложения с помощью NLTK (русский/английский)."""
     try:
         return sent_tokenize(text, language='russian')
     except:
         return sent_tokenize(text, language='english')
 
+def is_heading(text: str) -> bool:
+    """Проверяет, является ли строка заголовком (Markdown или нумерованным)."""
+    stripped = text.strip()
+    # Markdown-заголовки: начинаются с #, ##, ### и т.д.
+    if stripped.startswith('#'):
+        return True
+    # Нумерованные списки: начинаются с цифры, точки и пробела
+    if re.match(r'^\d+\.\s+', stripped):
+        return True
+    # Также можно проверить на маркеры списков типа "- ", "* "
+    return False
+
 def semantic_chunking(text: str, chunk_size: int, overlap_size: int, threshold: float) -> list:
-    """
-    Основная функция семантического чанкинга.
-    Сначала текст делится на абзацы по пустым строкам (два переноса).
-    Внутри каждого абзаца предложения группируются по смыслу:
-    если косинусное сходство между соседними предложениями выше порога
-    и размер не превышен, они остаются в одном чанке, иначе — разрыв.
-    Перекрытие добавляется с помощью последних символов предыдущего чанка.
-    В конце удаляются дубликаты.
-    """
-    # Разбиваем на абзацы по двум переносам строк (стандарт Markdown)
-    paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
+    # Разбиваем на абзацы по двойным переносам
+    paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
     if not paragraphs:
         return []
     all_chunks = []
     for para in paragraphs:
-        # Получаем предложения внутри абзаца
+        # Пропускаем пустые и разделители
+        if para in ("", "---", "***", "___"):
+            continue
+
+        # Если абзац — заголовок, добавляем его как целый чанк
+        if is_heading(para):
+            # Добавляем заголовок, если он не слишком длинный (можно обрезать, но обычно короткий)
+            if len(para) <= chunk_size:
+                all_chunks.append(para)
+            else:
+                # Если заголовок длинный — разбиваем как обычный текст (редко)
+                sentences = split_into_sentences(para)
+                sentences = [s.strip() for s in sentences if s.strip()]
+                if sentences:
+                    # Просто объединяем все предложения в один чанк
+                    all_chunks.append(" ".join(sentences))
+            continue  # переходим к следующему абзацу
+
+        # Обычный абзац — разбиваем на предложения
         sentences = split_into_sentences(para)
         sentences = [s.strip() for s in sentences if s.strip()]
         if not sentences:
             continue
-
-        # Считаем эмбеддинги для всех предложений абзаца
         embeddings = model.encode(sentences, show_progress_bar=False, batch_size=64)
-
-        # Начинаем первый чанк с первого предложения
         current_chunk = [sentences[0]]
         current_len = len(sentences[0])
-
         for i in range(1, len(sentences)):
-            # Косинусное сходство между предыдущим и текущим предложением
             sim = np.dot(embeddings[i-1], embeddings[i]) / (
                     np.linalg.norm(embeddings[i-1]) * np.linalg.norm(embeddings[i])
             )
-
-            # Если сходство высокое и размер не превышен — добавляем
             if sim >= threshold and (current_len + len(sentences[i]) <= chunk_size):
                 current_chunk.append(sentences[i])
                 current_len += len(sentences[i])
             else:
-                # Закрываем текущий чанк
                 chunk_text = " ".join(current_chunk).strip()
                 if chunk_text:
                     all_chunks.append(chunk_text)
-
-                # Перекрытие: последние `overlap_size` символов из закрытого чанка
                 overlap_text = chunk_text[-overlap_size:] if len(chunk_text) > overlap_size else chunk_text
-                # Новый чанк начинается с перекрытия + текущее предложение
                 current_chunk = [overlap_text + " " + sentences[i]] if overlap_text else [sentences[i]]
                 current_len = len(current_chunk[0])
-
-        # Последний чанк абзаца
         if current_chunk:
             chunk_text = " ".join(current_chunk).strip()
             if chunk_text:
                 all_chunks.append(chunk_text)
 
-    # Убираем дубликаты, сохраняя порядок
+    # Убираем дубликаты
     seen = set()
     unique_chunks = []
     for ch in all_chunks:
         if ch not in seen:
             seen.add(ch)
             unique_chunks.append(ch)
-
     return unique_chunks
 
-# ---------- Чтение всех текстовых файлов из папки documents ----------
+# ---------- Чтение файлов ----------
 docs = []
 metadatas = []
 ids = []
@@ -119,8 +122,6 @@ for filename in os.listdir(doc_folder):
         continue
     filepath = os.path.join(doc_folder, filename)
     text = None
-
-    # Пробуем разные кодировки
     for encoding in ['utf-8', 'utf-8-sig', 'latin-1', 'cp1251']:
         try:
             with open(filepath, 'r', encoding=encoding) as f:
@@ -131,16 +132,16 @@ for filename in os.listdir(doc_folder):
     if text is None:
         print(f"Пропущен {filename} — не удалось определить кодировку")
         continue
-
-    # Применяем семантическое разбиение
     chunks = semantic_chunking(text, chunk_size, overlap_size, similarity_threshold)
-    chunks = [c for c in chunks if c.strip()]
+
+    # Фильтруем пустые и чанки-разделители
+    chunks = [c for c in chunks if c.strip() and c.strip() != "---"]
     if not chunks:
         print(f"Файл {filename} не дал чанков")
         continue
-
-    # Сохраняем каждый чанк с метаданными
     for idx, chunk in enumerate(chunks):
+        if any(phrase in chunk for phrase in STOP_PHRASES):
+            continue
         docs.append(chunk)
         metadatas.append({
             "source": filename,
@@ -153,7 +154,7 @@ if not docs:
     exit(1)
 print(f"Сгенерировано {len(docs)} чанков")
 
-# ---------- Получение эмбеддингов и загрузка в Qdrant ----------
+# ---------- Векторизация и загрузка ----------
 embeddings = model.encode(docs, show_progress_bar=True, batch_size=32)
 points = [
     PointStruct(id=ids[i], vector=embeddings[i].tolist(), payload=metadatas[i])
@@ -162,15 +163,12 @@ points = [
 client.upsert(collection_name=collection_name, points=points)
 print(f"Загружено {len(points)} векторов в коллекцию '{collection_name}'")
 
-# ---------- Сохранение данных на диск ----------
-# Человеко-читаемый текстовый файл с разделителями между чанками
+# ---------- Сохранение ----------
 with open("docs.txt", "w", encoding="utf-8") as f:
     for i, chunk in enumerate(docs):
         if i > 0:
             f.write("\n---\n\n")
         f.write(chunk)
-
-# Бинарные файлы для быстрой загрузки в Python
 with open("docs.pkl", "wb") as f:
     pickle.dump(docs, f)
 with open("metadatas.pkl", "wb") as f:
