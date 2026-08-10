@@ -37,7 +37,6 @@ overlap_size = 150            # сколько символов перекрыв
 similarity_threshold = 0.7    # порог схожести предложений для разрыва
 
 # ---------- Функции для работы с текстом ----------
-
 def split_into_sentences(text: str) -> list:
     """Разбивает текст на предложения, используя библиотеку NLTK.
        Поддерживает русский и английский языки."""
@@ -73,7 +72,6 @@ def semantic_chunking(text: str, chunk_size: int, overlap_size: int, threshold: 
         # Начинаем первый чанк с первого предложения
         current_chunk = [sentences[0]]
         current_len = len(sentences[0])
-
         for i in range(1, len(sentences)):
             # Вычисляем косинусное сходство между текущим и предыдущим предложением
             sim = np.dot(embeddings[i-1], embeddings[i]) / (
