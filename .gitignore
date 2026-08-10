@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+.venv/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Data files
+*.pkl
+*.npy
+embeddings.npy
+docs.pkl
+metadatas.pkl
+
+# Model cache (already downloaded)
+models_cache/
+
+# Qdrant local storage
+qdrant_storage/
+
+# OS
+.DS_Store
+Thumbs.db
