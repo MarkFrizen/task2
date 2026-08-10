@@ -22,7 +22,6 @@ def search(query: str, top_k: int = 5):
         with_payload=True
     )
     return results.points
-
 if __name__ == "__main__":
     print("\n=== Семантический поиск ===\n")
     while True:
