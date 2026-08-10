@@ -25,6 +25,7 @@ doc_folder = "./documents"
 if not os.path.exists(doc_folder):
     print(f"Папка {doc_folder} не найдена")
     exit(1)
+
 # Загрузка текстовых файлов из директории документов
 # --- НАСТРОЙКИ ЧАНКИНГА ---
 chunk_size = 800          # целевая длина чанка в символах
