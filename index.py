@@ -171,9 +171,15 @@ client.upsert(collection_name=collection_name, points=points)
 print(f"Загружено {len(points)} векторов в коллекцию '{collection_name}'")
 
 # ---------- Сохранение данных на диск ----------
+# Сохраняем каждый чанк на отдельной строке в текстовом файле
+with open("docs.txt", "w", encoding="utf-8") as f:
+    for chunk in docs:
+        # Экранируем кавычки и каждую строку чанка записываем на новой строке
+        escaped = chunk.replace('"', '""')
+        f.write('"' + escaped + '"\n')
 with open("docs.pkl", "wb") as f:
     pickle.dump(docs, f)
 with open("metadatas.pkl", "wb") as f:
     pickle.dump(metadatas, f)
 np.save("embeddings.npy", embeddings)
-print("Данные сохранены в docs.pkl, metadatas.pkl и embeddings.npy")
+print("Данные сохранены в docs.txt, docs.pkl, metadatas.pkl и embeddings.npy")
