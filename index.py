@@ -2,12 +2,19 @@ import os
 import uuid
 import pickle
 import numpy as np
-from sentence_transformers import SentenceTransformer
-from qdrant_client import QdrantClient
-from qdrant_client.http.models import Distance, VectorParams, PointStruct
+
+# ═══════════════════════════════════════════════════════════
+# ВАЖНО: все переменные офлайн-режима должны быть заданы
+# ДО любых импортов sentence_transformers / transformers / huggingface_hub
+# ═══════════════════════════════════════════════════════════
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
+os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
+
+from sentence_transformers import SentenceTransformer
+from qdrant_client import QdrantClient
+from qdrant_client.http.models import Distance, VectorParams, PointStruct
 MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
 client = QdrantClient(host="localhost", port=6333)
