@@ -16,20 +16,42 @@ embeddings = np.load("embeddings.npy")
 MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
 
-# Вычисление косинусного сходства между запросом и документами
-"""
-Вычисляет и выводит косинусное сходство и расстояние между запросом и каждым документом.
-"""
-def show_cosine_distances(query: str):
+# Поиск по косинусному сходству — единый интерфейс search()
+def search(query: str, top_k: int = 5):
     q_emb = model.encode([query])
     similarities = cosine_similarity(q_emb, embeddings)[0]
     distances = 1 - similarities
-    print(f"\nЗапрос: '{query}'\n")
-    for i, (doc, sim, dist) in enumerate(zip(docs, similarities, distances)):
-        print(f"Документ {i}:")
-        print(f"  Текст: {doc[:100]}...")
-        print(f"  Сходство: {sim:.4f}")
-        print(f"  Расстояние: {dist:.4f}\n")
+    # Сортировка по убыванию сходства
+    top_indices = np.argsort(similarities)[::-1][:top_k]
+    results = []
+    for idx in top_indices:
+        results.append({
+            "text": docs[idx],
+            "metadata": metadatas[idx],
+            "score": float(similarities[idx])
+        })
+    return results
+
+with open("metadatas.pkl", "rb") as f:
+    metadatas = pickle.load(f)
+
 if __name__ == "__main__":
-    test_query = "машинное обучение"
-    show_cosine_distances(test_query)
+    print("\n=== Семантический поиск (косинусное сходство) ===\n")
+    while True:
+        query = input("Введите запрос (или 'exit' для выхода): ").strip()
+        if query.lower() in ("exit", "quit", "q"):
+            print("Выход из программы.")
+            break
+        if not query:
+            print("Запрос не может быть пустым. Попробуйте ещё раз.\n")
+            continue
+        print(f"\nЗапрос: {query}\n")
+        results = search(query)
+        if not results:
+            print("Ничего не найдено.\n")
+        else:
+            print("Результаты:")
+            for i, hit in enumerate(results, start=1):
+                print(f"{i}. {hit['metadata']['source']} чанк {hit['metadata']['chunk_id']}")
+                print(f"   {hit['text'][:150]}...")
+                print(f"   score: {hit['score']:.4f}\n")

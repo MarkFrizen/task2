@@ -26,11 +26,8 @@ index.add(embeddings_norm)
 MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
 
-# Поиск похожих документов через FAISS с использованием локального индекса
-"""
-Ищет top_k наиболее похожих документов на запрос через FAISS.
-"""
-def search_faiss(query: str, top_k: int = 5):
+# Поиск похожих документов через FAISS — единый интерфейс search()
+def search(query: str, top_k: int = 5):
     q_emb = model.encode([query])
     q_emb_norm = q_emb / np.linalg.norm(q_emb)
     scores, indices = index.search(q_emb_norm, top_k)
@@ -42,11 +39,24 @@ def search_faiss(query: str, top_k: int = 5):
             "score": float(score)
         })
     return results
+
 if __name__ == "__main__":
-    test_query = "машинное обучение"
-    print(f"Поиск через FAISS по запросу: '{test_query}'\n")
-    results = search_faiss(test_query)
-    for i, res in enumerate(results, 1):
-        print(f"{i}. {res['metadata']['source']} чанк {res['metadata']['chunk_id']}")
-        print(f"   {res['text'][:150]}...")
-        print(f"   score: {res['score']:.4f}\n")
+    print("\n=== Семантический поиск (FAISS) ===\n")
+    while True:
+        query = input("Введите запрос (или 'exit' для выхода): ").strip()
+        if query.lower() in ("exit", "quit", "q"):
+            print("Выход из программы.")
+            break
+        if not query:
+            print("Запрос не может быть пустым. Попробуйте ещё раз.\n")
+            continue
+        print(f"\nЗапрос: {query}\n")
+        results = search(query)
+        if not results:
+            print("Ничего не найдено.\n")
+        else:
+            print("Результаты:")
+            for i, hit in enumerate(results, start=1):
+                print(f"{i}. {hit['metadata']['source']} чанк {hit['metadata']['chunk_id']}")
+                print(f"   {hit['text'][:150]}...")
+                print(f"   score: {hit['score']:.4f}\n")
