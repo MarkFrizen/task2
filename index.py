@@ -4,16 +4,11 @@ import pickle
 import numpy as np
 import nltk
 from nltk.tokenize import sent_tokenize
-
-# Скачиваем данные для токенизации (делается один раз)
 nltk.download('punkt_tab', quiet=True)
-
-# Отключаем обращения в интернет для офлайн-работы
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
 os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
-
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams, PointStruct
@@ -21,7 +16,6 @@ from qdrant_client.http.models import Distance, VectorParams, PointStruct
 # ---------- Настройки модели и базы данных ----------
 MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
-
 client = QdrantClient(host="localhost", port=6333)
 collection_name = "my_docs"
 vector_size = 384
@@ -59,9 +53,7 @@ def semantic_chunking(text: str, chunk_size: int, overlap_size: int, threshold: 
     paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
     if not paragraphs:
         return []
-
     all_chunks = []
-
     for para in paragraphs:
         # Получаем предложения внутри абзаца
         sentences = split_into_sentences(para)
@@ -140,7 +132,7 @@ for filename in os.listdir(doc_folder):
         print(f"Пропущен {filename} — не удалось определить кодировку")
         continue
 
-    # Применяем семантическое разбиение (переносы строк сохраняются внутри абзацев)
+    # Применяем семантическое разбиение
     chunks = semantic_chunking(text, chunk_size, overlap_size, similarity_threshold)
     chunks = [c for c in chunks if c.strip()]
     if not chunks:
@@ -149,7 +141,7 @@ for filename in os.listdir(doc_folder):
 
     # Сохраняем каждый чанк с метаданными
     for idx, chunk in enumerate(chunks):
-        docs.append(chunk)   # теперь чанк содержит пробелы, но не сломанные переносы
+        docs.append(chunk)
         metadatas.append({
             "source": filename,
             "chunk_id": idx,
@@ -171,15 +163,17 @@ client.upsert(collection_name=collection_name, points=points)
 print(f"Загружено {len(points)} векторов в коллекцию '{collection_name}'")
 
 # ---------- Сохранение данных на диск ----------
-# Сохраняем каждый чанк на отдельной строке в текстовом файле
+# Человеко-читаемый текстовый файл с разделителями между чанками
 with open("docs.txt", "w", encoding="utf-8") as f:
-    for chunk in docs:
-        # Экранируем кавычки и каждую строку чанка записываем на новой строке
-        escaped = chunk.replace('"', '""')
-        f.write('"' + escaped + '"\n')
+    for i, chunk in enumerate(docs):
+        if i > 0:
+            f.write("\n---\n\n")
+        f.write(chunk)
+
+# Бинарные файлы для быстрой загрузки в Python
 with open("docs.pkl", "wb") as f:
     pickle.dump(docs, f)
 with open("metadatas.pkl", "wb") as f:
     pickle.dump(metadatas, f)
 np.save("embeddings.npy", embeddings)
-print("Данные сохранены в docs.txt, docs.pkl, metadatas.pkl и embeddings.npy")
+print("Данные сохранены в docs.txt (с разделителями), docs.pkl, metadatas.pkl и embeddings.npy")
