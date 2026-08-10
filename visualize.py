@@ -1,56 +1,79 @@
-# Импортируем нужные библиотеки
+# Импортируем библиотеки для работы с числами и графиками
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import pickle
 
-# Загружаем заранее сохранённые эмбеддинги, тексты чанков и их метаданные
+# Загружаем заранее сохранённые эмбеддинги, тексты и метаданные
 embeddings = np.load("embeddings.npy")
 with open("docs.pkl", "rb") as f:
     docs = pickle.load(f)
 with open("metadatas.pkl", "rb") as f:
     metadatas = pickle.load(f)
 
-# Определяем уникальные имена файлов, из которых взяты чанки
+# Получаем список имён исходных файлов и назначаем каждому уникальный цвет
 sources = [m['source'] for m in metadatas]
 unique_sources = list(set(sources))
-
-# Назначаем каждому файлу свой цвет из палитры tab10
 colors = plt.cm.tab10(np.linspace(0, 1, len(unique_sources)))
 source_to_color = {src: colors[i] for i, src in enumerate(unique_sources)}
 
-# Строим двумерную проекцию методом главных компонент
+# Вычисляем центроид для каждого файла как среднее арифметическое всех его векторов
+centroids = {}
+for src in unique_sources:
+    indices = [i for i, m in enumerate(metadatas) if m['source'] == src]
+    centroids[src] = np.mean(embeddings[indices], axis=0)
+
+# Построение двумерной проекции методом главных компонент
 pca = PCA(n_components=2)
 emb_2d = pca.fit_transform(embeddings)
-
-# Создаём новый график для 2D визуализации
 plt.figure(figsize=(14, 10))
 
-# Проходим по всем чанкам и рисуем каждую точку с подписью
+# Рисуем каждую точку чанка и подписываем её порядковым номером
 for i in range(len(docs)):
     color = source_to_color[metadatas[i]['source']]
-    plt.scatter(emb_2d[i, 0], emb_2d[i, 1], color=color, alpha=0.7, s=30)
+    plt.scatter(emb_2d[i, 0], emb_2d[i, 1], color=color, alpha=0.7, s=25)
     plt.annotate(f"Чанк {i+1}", (emb_2d[i, 0], emb_2d[i, 1]),
-                 fontsize=5, alpha=0.5, ha='center', va='center')
+                 fontsize=4, alpha=0.4, ha='center', va='center')
 
-# Добавляем заголовок, подписи осей и сетку
-plt.title("PCA 2D проекция все чанки подписаны цвет по файлу")
+# Проецируем центроиды в то же 2D пространство и изображаем их звёздочками
+centroids_2d = {}
+for src in unique_sources:
+    centroid_vec = centroids[src].reshape(1, -1)
+    centroid_2d = pca.transform(centroid_vec)[0]
+    centroids_2d[src] = centroid_2d
+    plt.scatter(centroid_2d[0], centroid_2d[1],
+                marker='*', s=300, color=source_to_color[src], edgecolors='black', linewidth=1)
+    plt.annotate(f"Центроид {src}", (centroid_2d[0], centroid_2d[1]),
+                 fontsize=9, fontweight='bold', ha='center', va='bottom')
+
+# Добавляем красные стрелки главных компонент с длиной, пропорциональной объяснённой дисперсии
+for i in range(2):
+    scale = 2.0
+    vec = pca.components_[i] * np.sqrt(pca.explained_variance_[i]) * scale
+    mean_2d = np.mean(emb_2d, axis=0)
+    plt.arrow(mean_2d[0], mean_2d[1], vec[0], vec[1],
+              head_width=0.5, head_length=0.5, fc='red', ec='red', alpha=0.8)
+    plt.text(mean_2d[0] + vec[0]*1.1, mean_2d[1] + vec[1]*1.1,
+             f'PC{i+1}', color='red', fontsize=12, fontweight='bold')
+
+# Оформляем график: заголовок, подписи осей, сетка
+plt.title("PCA 2D проекция с центроидами и векторами главных компонент")
 plt.xlabel("PC1")
 plt.ylabel("PC2")
 plt.grid(True, linestyle='--', alpha=0.3)
 
-# Рисуем легенду с названиями исходных файлов
+# Создаём легенду с цветами файлов и значком центроидов
 from matplotlib.patches import Patch
 legend_elements = [Patch(facecolor=source_to_color[src], label=src)
                    for src in unique_sources]
+legend_elements.append(plt.Line2D([0], [0], marker='*', color='w',
+                                  markerfacecolor='black', markersize=10, label='Центроиды'))
 plt.legend(handles=legend_elements, loc='best', fontsize=8)
-
-# Показываем график
 plt.tight_layout()
 plt.show()
 
-# Переходим к трёхмерной визуализации
+# Построение трёхмерной проекции
 # Если чанков больше двух, используем t-SNE, иначе PCA
 if len(embeddings) > 2:
     perplexity = min(30, len(embeddings) - 1)
@@ -61,33 +84,46 @@ else:
     pca3 = PCA(n_components=3)
     emb_3d = pca3.fit_transform(embeddings)
     method = "PCA"
-
-# Создаём трёхмерный график
 fig = plt.figure(figsize=(14, 10))
 ax = fig.add_subplot(111, projection='3d')
 
-# Рисуем каждую точку в 3D и подписываем её
+# Отрисовываем все точки чанков в трёхмерном пространстве с подписями
 for i in range(len(docs)):
     color = source_to_color[metadatas[i]['source']]
     ax.scatter(emb_3d[i, 0], emb_3d[i, 1], emb_3d[i, 2],
-               color=color, alpha=0.7, s=30)
+               color=color, alpha=0.6, s=20)
     ax.text(emb_3d[i, 0], emb_3d[i, 1], emb_3d[i, 2],
-            f"Чанк {i+1}", fontsize=4, alpha=0.4, ha='center', va='center')
+            f"Чанк {i+1}", fontsize=3, alpha=0.3, ha='center', va='center')
 
-# Добавляем заголовок и подписи осей
-ax.set_title(f"{method} 3D проекция все чанки подписаны")
+# Для PCA можно спроецировать центроиды в 3D и показать их звёздочками
+if method == "PCA":
+    centroids_3d = {}
+    for src in unique_sources:
+        centroid_vec = centroids[src].reshape(1, -1)
+        centroid_3d = pca3.transform(centroid_vec)[0]
+        centroids_3d[src] = centroid_3d
+        ax.scatter(centroid_3d[0], centroid_3d[1], centroid_3d[2],
+                   marker='*', s=300, color=source_to_color[src], edgecolors='black', linewidth=1)
+        ax.text(centroid_3d[0], centroid_3d[1], centroid_3d[2],
+                f"Центроид {src}", fontsize=9, fontweight='bold')
+else:
+    # Для t-SNE центроиды не показываем, так как их нужно пересчитывать вместе с данными
+    ax.text2D(0.05, 0.95, "Центроиды не показаны для t-SNE", transform=ax.transAxes, fontsize=10, color='gray')
+
+# Оформляем трёхмерный график
+ax.set_title(f"{method} 3D проекция")
 ax.set_xlabel("X")
 ax.set_ylabel("Y")
 ax.set_zlabel("Z")
 
 # Легенда для трёхмерного графика
-from mpl_toolkits.mplot3d.art3d import Line3DCollection
 legend_elements_3d = [plt.Line2D([0], [0], marker='o', color='w',
                                  markerfacecolor=source_to_color[src],
                                  label=src, markersize=8)
                       for src in unique_sources]
+if method == "PCA":
+    legend_elements_3d.append(plt.Line2D([0], [0], marker='*', color='w',
+                                         markerfacecolor='black', markersize=10, label='Центроиды'))
 ax.legend(handles=legend_elements_3d, loc='best', fontsize=8)
-
-# Показываем второй график
 plt.tight_layout()
 plt.show()
