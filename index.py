@@ -56,6 +56,8 @@ def semantic_chunking(text: str, chunk_size: int, overlap_size: int, threshold: 
     В конце удаляются дубликаты чанков.
     """
     # Разбиваем на абзацы
+    # Нормализуем переносы строк в один пробел
+    text = ' '.join(text.split())
     paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
     if not paragraphs:
         return []
@@ -90,6 +92,8 @@ def semantic_chunking(text: str, chunk_size: int, overlap_size: int, threshold: 
             else:
                 # Иначе закрываем текущий чанк
                 chunk_text = " ".join(current_chunk).strip()
+                # Убираем лишние переносы строк
+                chunk_text = ' '.join(chunk_text.split())
                 if chunk_text:
                     all_chunks.append(chunk_text)
 
@@ -102,6 +106,7 @@ def semantic_chunking(text: str, chunk_size: int, overlap_size: int, threshold: 
         # Добавляем последний чанк абзаца
         if current_chunk:
             chunk_text = " ".join(current_chunk).strip()
+            chunk_text = ' '.join(chunk_text.split())
             if chunk_text and chunk_text not in ("", "\n", " "):
                 all_chunks.append(chunk_text)
 
