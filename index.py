@@ -2,16 +2,10 @@ import os
 import uuid
 import pickle
 import numpy as np
-
-# ═══════════════════════════════════════════════════════════
-# ВАЖНО: все переменные офлайн-режима должны быть заданы
-# ДО любых импортов sentence_transformers / transformers / huggingface_hub
-# ═══════════════════════════════════════════════════════════
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
 os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
-
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams, PointStruct
