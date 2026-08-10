@@ -27,7 +27,7 @@ MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_c
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
 
 # Поиск похожих документов через FAISS — единый интерфейс search()
-def search(query: str, top_k: int = 5):
+def search(query: str, top_k: int = 10):
     q_emb = model.encode([query])
     q_emb_norm = q_emb / np.linalg.norm(q_emb)
     scores, indices = index.search(q_emb_norm, top_k)
