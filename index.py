@@ -56,7 +56,7 @@ def semantic_chunking(text: str, chunk_size: int, overlap_size: int, threshold: 
     В конце удаляются дубликаты чанков.
     """
     # Разбиваем на абзацы
-    paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+    paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
     if not paragraphs:
         return []
     all_chunks = []
