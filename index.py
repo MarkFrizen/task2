@@ -5,6 +5,7 @@ import pickle
 import numpy as np
 import nltk
 from nltk.tokenize import sent_tokenize
+from rank_bm25 import BM25Okapi
 nltk.download('punkt_tab', quiet=True)
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['HF_HUB_OFFLINE'] = '1'
@@ -171,6 +172,15 @@ points = [
 ]
 client.upsert(collection_name=collection_name, points=points)
 print(f"Загружено {len(points)} векторов в коллекцию '{collection_name}'")
+
+# ---------- BM25 индекс ----------
+tokenized_docs = [doc.split() for doc in docs]
+bm25 = BM25Okapi(tokenized_docs)
+with open("bm25_index.pkl", "wb") as f:
+    pickle.dump(bm25, f)
+with open("tokenized_docs.pkl", "wb") as f:
+    pickle.dump(tokenized_docs, f)
+print(f"Создан BM25 индекс по {len(docs)} чанкам")
 
 # ---------- Сохранение ----------
 with open("docs.txt", "w", encoding="utf-8") as f:
