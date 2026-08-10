@@ -7,9 +7,11 @@ import pickle
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Загрузка сохранённых документов и их эмбеддингов
+# Загрузка сохранённых документов, метаданных и их эмбеддингов
 with open("docs.pkl", "rb") as f:
     docs = pickle.load(f)
+with open("metadatas.pkl", "rb") as f:
+    metadatas = pickle.load(f)
 embeddings = np.load("embeddings.npy")
 
 # Локальный кэш для офлайн-работы
