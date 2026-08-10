@@ -8,8 +8,8 @@ import pickle
 embeddings = np.load("embeddings.npy")
 with open("docs.pkl", "rb") as f:
     docs = pickle.load(f)
-# Визуализация данных в 2D с помощью PCA
 
+# Визуализация данных в 2D с помощью PCA
 # 2D визуализация с помощью метода главных компонент
 pca = PCA(n_components=2)
 emb_2d = pca.fit_transform(embeddings)
@@ -41,6 +41,7 @@ for i, txt in enumerate(docs):
     if i < 10:
         ax.text(emb_3d[i, 0], emb_3d[i, 1], emb_3d[i, 2], f"Doc{i}", fontsize=8)
 ax.set_title(f"{method} 3D проекция")
+
 # Визуализация данных в 3D пространстве
 ax.set_xlabel("X")
 ax.set_ylabel("Y")

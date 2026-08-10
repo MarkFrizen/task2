@@ -13,17 +13,20 @@ with open("docs.pkl", "rb") as f:
 with open("metadatas.pkl", "rb") as f:
     metadatas = pickle.load(f)
 embeddings = np.load("embeddings.npy")
+
 # Нормализация векторов для скалярного произведения
 embeddings_norm = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
 dim = embeddings.shape[1]
+
 # Создание FAISS-индекса с внутренним скалярным произведением
 index = faiss.IndexFlatIP(dim)
 index.add(embeddings_norm)
+
 # Локальный кэш для офлайн-работы
 MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
-# Поиск похожих документов через FAISS с использованием локального индекса
 
+# Поиск похожих документов через FAISS с использованием локального индекса
 """
 Ищет top_k наиболее похожих документов на запрос через FAISS.
 """

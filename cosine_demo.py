@@ -11,9 +11,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 with open("docs.pkl", "rb") as f:
     docs = pickle.load(f)
 embeddings = np.load("embeddings.npy")
+
 # Локальный кэш для офлайн-работы
 MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
+
 # Вычисление косинусного сходства между запросом и документами
 """
 Вычисляет и выводит косинусное сходство и расстояние между запросом и каждым документом.
