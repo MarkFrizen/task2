@@ -20,7 +20,7 @@ client = QdrantClient(host="localhost", port=6333)
 collection_name = "my_docs"
 vector_size = 384
 
-# Пересоздаём коллекцию (старые данные удаляются)
+# Пересоздаём коллекцию
 client.recreate_collection(
     collection_name=collection_name,
     vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE)
@@ -50,7 +50,7 @@ def semantic_chunking(text: str, chunk_size: int, overlap_size: int, threshold: 
     В конце удаляются дубликаты.
     """
     # Разбиваем на абзацы по двум переносам строк (стандарт Markdown)
-    paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+    paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
     if not paragraphs:
         return []
     all_chunks = []
