@@ -22,6 +22,7 @@ index.add(embeddings_norm)
 # Локальный кэш для офлайн-работы
 MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
+# Поиск похожих документов через FAISS с использованием локального индекса
 
 """
 Ищет top_k наиболее похожих документов на запрос через FAISS.

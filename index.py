@@ -25,10 +25,12 @@ doc_folder = "./documents"
 if not os.path.exists(doc_folder):
     print(f"Папка {doc_folder} не найдена")
     exit(1)
+# Загрузка текстовых файлов из директории документов
 
 # --- НАСТРОЙКИ ЧАНКИНГА ---
 chunk_size = 800          # целевая длина чанка в символах
 overlap_size = 150        # перекрытие между соседними чанками
+# Разбиение текста на чанки для индексации
 
 def split_into_blocks(text: str) -> list:
     """Разбиваем текст на блоки по пустым строкам (абзацы)."""
@@ -55,6 +57,7 @@ for filename in os.listdir(doc_folder):
     if text is None:
         print(f"Пропущен файл {filename}: не удалось определить кодировку")
         continue
+# Чтение файла с определением кодировки
     blocks = split_into_blocks(text)
     if not blocks:
         continue

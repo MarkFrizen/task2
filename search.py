@@ -12,9 +12,18 @@ model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
 # Подключение к серверу Qdrant
 client = QdrantClient(host="localhost", port=6333)
 
-"""
-Ищет top_k наиболее похожих документов на запрос через Qdrant.
-"""
+# Инициализация модели и клиента Qdrant
+
+def search(query: str, top_k: int = 5):
+    vec = model.encode([query])[0].tolist()
+    results = client.query_points(
+        collection_name="my_docs",
+        query=vec,
+        limit=top_k,
+        with_payload=True
+    )
+    return results.points
+# Поиск похожих документов через Qdrant
 def search(query: str, top_k: int = 5):
     vec = model.encode([query])[0].tolist()
     results = client.query_points(
