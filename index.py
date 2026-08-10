@@ -1,4 +1,3 @@
-# Импорт необходимых библиотек
 import os
 import re
 import uuid
@@ -7,11 +6,7 @@ import numpy as np
 import nltk
 from nltk.tokenize import sent_tokenize
 from rank_bm25 import BM25Okapi
-
-# Скачиваем данные для разбиения на предложения
 nltk.download('punkt_tab', quiet=True)
-
-# Отключаем интернет-запросы для работы офлайн
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
@@ -23,7 +18,6 @@ from qdrant_client.http.models import Distance, VectorParams, PointStruct
 # Настройки модели и базы данных
 MODEL_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models_cache')
 model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder=MODEL_CACHE)
-
 client = QdrantClient(host="localhost", port=6333)
 collection_name = "my_docs"
 vector_size = 384
@@ -41,7 +35,7 @@ chunk_size = 800
 overlap_size = 0          # перекрытие отключено, чтобы не было дублей
 similarity_threshold = 0.7
 
-# Функция очистки текста: убирает только кавычки, запятые в конце и ссылки
+# Функция очистки текста: удаляем кавычки, запятые в конце, ссылки и строки-разделители
 def clean_text(text: str) -> str:
     # Удаляем ссылки типа [reference:цифры]
     text = re.sub(r'\[reference:\d+\]', '', text)
@@ -49,7 +43,10 @@ def clean_text(text: str) -> str:
     cleaned_lines = []
     for line in lines:
         line = line.strip()
-        # Убираем начальные и конечные кавычки (всех видов)
+        # Пропускаем пустые строки и строки-разделители
+        if not line or line in ("---", "***", "___"):
+            continue
+        # Убираем начальные и конечные кавычки
         if line.startswith(('"', "'", '«', '“', '„')) and line.endswith(('"', "'", '»', '”', '“')):
             line = line[1:-1]
         # Убираем запятую в конце строки
@@ -59,9 +56,9 @@ def clean_text(text: str) -> str:
         if line.endswith(';'):
             line = line[:-1]
         line = line.strip()
-        if line:  # сохраняем все непустые строки, включая ---, *** и т.д.
+        if line:
             cleaned_lines.append(line)
-    # Собираем обратно с двойными переносами между строками (сохраняем структуру)
+    # Собираем обратно с двойными переносами между строками
     return '\n\n'.join(cleaned_lines)
 
 # Разбивает текст на предложения через NLTK
@@ -97,7 +94,6 @@ def semantic_chunking(text: str, chunk_size: int, threshold: float) -> list:
     if not paragraphs:
         return []
     all_chunks = []
-
     for para in paragraphs:
         # Если абзац — заголовок, добавляем его целиком
         if is_heading(para):
@@ -123,7 +119,6 @@ def semantic_chunking(text: str, chunk_size: int, threshold: float) -> list:
         # Собираем чанки без перекрытия
         current_chunk = [sentences[0]]
         current_len = len(sentences[0])
-
         for i in range(1, len(sentences)):
             # Вычисляем косинусное сходство между соседними предложениями
             sim = np.dot(embeddings[i-1], embeddings[i]) / (
@@ -148,10 +143,13 @@ def semantic_chunking(text: str, chunk_size: int, threshold: float) -> list:
             if chunk_text:
                 all_chunks.append(chunk_text)
 
-    # Глобальная дедупликация чанков (точные дубликаты)
+    # Глобальная дедупликация чанков и удаление чанков-разделителей
     seen = set()
     unique_chunks = []
     for ch in all_chunks:
+        # Пропускаем пустые чанки и чанки, состоящие только из разделителей
+        if not ch.strip() or ch.strip() in ("---", "***", "___"):
+            continue
         if ch not in seen:
             seen.add(ch)
             unique_chunks.append(ch)
@@ -183,17 +181,16 @@ for filename in os.listdir(doc_folder):
         print(f"Пропущен {filename} — не удалось определить кодировку")
         continue
 
-    # Очищаем текст от лишних символов (кавычки, запятые, ссылки)
+    # Очищаем текст от лишних символов и разделителей
     text = clean_text(text)
 
     # Применяем семантический чанкинг
     chunks = semantic_chunking(text, chunk_size, similarity_threshold)
-    chunks = [c for c in chunks if c.strip()]  # убираем только совсем пустые чанки
     if not chunks:
         print(f"Файл {filename} не дал чанков")
         continue
 
-    # Сохраняем все чанки без исключений
+    # Сохраняем все чанки
     for idx, chunk in enumerate(chunks):
         docs.append(chunk)
         metadatas.append({
@@ -226,6 +223,7 @@ with open("tokenized_docs.pkl", "wb") as f:
 print(f"Создан BM25 индекс по {len(docs)} чанкам")
 
 # Сохранение данных на диск
+# Записываем docs.txt с разделителями только между чанками
 with open("docs.txt", "w", encoding="utf-8") as f:
     for i, chunk in enumerate(docs):
         if i > 0:
