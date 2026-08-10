@@ -41,5 +41,4 @@ if __name__ == "__main__":
             for i, hit in enumerate(results, start=1):
                 print(f"{i}. {hit.payload['source']} чанк {hit.payload['chunk_id']}")
                 print(f"   {hit.payload['text'][:150]}...")
-                print(f"   score: {hit.score:.4f}")
-                print()
+                print(f"   score: {hit.score:.4f}\n")
