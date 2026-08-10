@@ -66,6 +66,11 @@ def semantic_chunking(text: str, chunk_size: int, overlap_size: int, threshold: 
         if not sentences:
             continue
 
+        # Фильтруем пустые и содержащие только пробелы предложения
+        sentences = [s for s in sentences if s.strip()]
+        if not sentences:
+            continue
+
         # Считаем эмбеддинги для всех предложений абзаца
         embeddings = model.encode(sentences, show_progress_bar=False, batch_size=64)
 
@@ -97,7 +102,7 @@ def semantic_chunking(text: str, chunk_size: int, overlap_size: int, threshold: 
         # Добавляем последний чанк абзаца
         if current_chunk:
             chunk_text = " ".join(current_chunk).strip()
-            if chunk_text:
+            if chunk_text and chunk_text not in ("", "\n", " "):
                 all_chunks.append(chunk_text)
 
     # Убираем дубликаты, сохраняя порядок
@@ -136,15 +141,15 @@ for filename in os.listdir(doc_folder):
 
     # Применяем семантическое разбиение к содержимому файла
     chunks = semantic_chunking(text, chunk_size, overlap_size, similarity_threshold)
+    # Фильтруем пустые чанки
+    chunks = [c for c in chunks if c.strip()]
     if not chunks:
         print(f"Файл {filename} не дал чанков")
         continue
 
     # Сохраняем каждый чанк с метаданными
     for idx, chunk in enumerate(chunks):
-        # Добавляем разделитель для визуального отделения чанков (не влияет на поиск)
-        chunk_with_sep = chunk + "\n\n---\n\n"
-        docs.append(chunk_with_sep)
+        docs.append(chunk)
         metadatas.append({
             "source": filename,
             "chunk_id": idx,
