@@ -23,16 +23,6 @@ def search(query: str, top_k: int = 5):
     )
     return results.points
 
-# Поиск похожих документов через Qdrant
-def search(query: str, top_k: int = 5):
-    vec = model.encode([query])[0].tolist()
-    results = client.query_points(
-        collection_name="my_docs",
-        query=vec,
-        limit=top_k,
-        with_payload=True
-    )
-    return results.points
 if __name__ == "__main__":
     print("\n=== Семантический поиск ===\n")
     while True:
