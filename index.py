@@ -76,10 +76,9 @@ for filename in os.listdir(doc_folder):
         if current_len >= chunk_size and len(current_chunk_blocks) > 1:
             chunk = "\n\n".join(current_chunk_blocks).strip()
             if len(chunk) > 5:
-                # Добавляем разделитель перед чанком (кроме первого)
-                prefix = "---\n" if len(docs) > 0 else ""
-                docs.append(prefix + chunk)
-                metadatas.append({"source": filename, "chunk_id": chunk_id, "text": prefix + chunk})
+                chunk_with_sep = chunk + "\n\n---\n\n"
+                docs.append(chunk_with_sep)
+                metadatas.append({"source": filename, "chunk_id": chunk_id, "text": chunk})
                 ids.append(str(uuid.uuid4()))
                 chunk_id += 1
             # Оставляем последний блок как начало следующего чанка (overlap)
@@ -90,9 +89,9 @@ for filename in os.listdir(doc_folder):
     if current_chunk_blocks:
         chunk = "\n\n".join(current_chunk_blocks).strip()
         if len(chunk) > 5:
-            prefix = "---\n" if len(docs) > 0 else ""
-            docs.append(prefix + chunk)
-            metadatas.append({"source": filename, "chunk_id": chunk_id, "text": prefix + chunk})
+            chunk_with_sep = chunk + "\n\n---\n\n"
+            docs.append(chunk_with_sep)
+            metadatas.append({"source": filename, "chunk_id": chunk_id, "text": chunk})
             ids.append(str(uuid.uuid4()))
 if not docs:
     print("Не найдено ни одного чанка")
